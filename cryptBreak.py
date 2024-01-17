@@ -30,9 +30,6 @@ def cryptBreak(ciphertextFile, key):
         msg_decrypted_bv += bv
         outputtext = msg_decrypted_bv.get_text_from_bitvector()
         if('Ferrari' in outputtext):
-            print(outputtext)
-            print("The key is: ", key_bv.get_bitvector_in_hex())
-            print('Encryption broken!')
             break
         else:
             outputtext = 'Encryption not broken!'
