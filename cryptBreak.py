@@ -1,6 +1,6 @@
 from BitVector import *
 
-def cryptBreak(ciphertextFile, key):
+def cryptBreak(ciphertextFile, key_bv):
     PassPhrase = "Hopes and dreams of a million years"
     BLOCKSIZE = 16
     numbytes = BLOCKSIZE // 8
@@ -12,12 +12,6 @@ def cryptBreak(ciphertextFile, key):
 
     FILEIN = open(ciphertextFile)
     encrypted_bv = BitVector(hexstring=FILEIN.read())
-    #need key in ascii
-    key = key.get_bitvector_in_ascii()
-    key_bv = BitVector(bitlist = [0]*BLOCKSIZE)
-    for i in range(0, len(key) // numbytes):
-        keystr = key[i*numbytes:(i+1)*numbytes]
-        key_bv ^= BitVector(textstring=keystr)
 
     msg_decrypted_bv = BitVector(size=0)
     
