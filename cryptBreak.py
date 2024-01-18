@@ -12,7 +12,8 @@ def cryptBreak(ciphertextFile, key):
 
     FILEIN = open(ciphertextFile)
     encrypted_bv = BitVector(hexstring=FILEIN.read())
-
+    #need key in ascii
+    key = key.get_bitvector_in_ascii()
     key_bv = BitVector(bitlist = [0]*BLOCKSIZE)
     for i in range(0, len(key) // numbytes):
         keystr = key[i*numbytes:(i+1)*numbytes]
@@ -29,8 +30,4 @@ def cryptBreak(ciphertextFile, key):
         bv ^= key_bv
         msg_decrypted_bv += bv
         outputtext = msg_decrypted_bv.get_text_from_bitvector()
-        if('Ferrari' in outputtext):
-            break
-        else:
-            outputtext = 'Encryption not broken!'
     return outputtext
