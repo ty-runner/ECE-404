@@ -72,9 +72,6 @@ class DES():
                             [2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11]]
 
 
-    #encrypt method declaration
-    #inputs: message_file(str), outfile(str)
-    #outputs: none
     def encrypt(self, message_file, outfile):
         #encrypts the contents of the message file and writes the ciphertext to the outfile
 
@@ -84,6 +81,12 @@ class DES():
     def decrypt(self, message_file, outfile):
         #decrypts the contents of the message file and writes the plaintext to the outfile
 
+if __name__ == '__main__':
+    cipher = DES(key=sys.argv[3])
+    if sys.argv[1] == '-e':
+        cipher.encrypt(message_file=sys.argv[2], outfile=sys.argv[4])
+    elif sys.argv[1] == '-d':
+        cipher.decrypt(message_file=sys.argv[2], outfile=sys.argv[4])
 #example usage:
 #python3 DES.py -e message.txt key.txt encrypted.txt
 #python3 DES.py -d encrypted.txt key.txt decrypted.txt
