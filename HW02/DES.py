@@ -96,7 +96,13 @@ class DES():
                                             2, 2, 2, 2,
                                             1, 2, 2, 2,
                                             2, 2, 2, 1]
-        self.key = BitVector(filename=key)
+        self.key = self.read_key(key)
+    def read_key(self, key_file):
+        with open(key_file, 'r') as key:
+            key = key.read()
+        print(key)
+        key = BitVector(textstring=key)
+        return key
     def generate_round_keys(self, encryption_key):
         round_keys = []
         key = encryption_key.deep_copy()
@@ -129,41 +135,44 @@ class DES():
         #encrypts the contents of the message file and writes the ciphertext to the outfile
         #read the message file
         message = BitVector(filename=message_file)
+        outfile = open(outfile, 'w')
         #get the key
         key = self.key
         #perform the initial permutation on the key
         key = key.permute(self.key_permutation_1)
         #generate the round keys
         round_keys = self.generate_round_keys(key)
-        #perform the initial permutation on the message
-        message = message.permute(self.initial_permutation)
         #split the message into two halves
-        [L, R] = message.divide_into_two()
-        #16 rounds of DES
-        for round_num in range(1):
-            #perform the expansion permutation on the right half
-            expanded_R = R.permute(self.expansion_permutation)
-            #XOR the expanded half with the round key
-            expanded_R ^= round_keys[round_num]
-            #perform the substitution step
-            substituted_R = self.substitute(expanded_R)
-            #perform the permutation step
-            permuted_R = substituted_R.permute(self.p_box)
-            #XOR the permuted half with the left half
-            new_R = permuted_R ^ L
-            #the left half becomes the right half
-            L = R
-            #the right half becomes the new right half
-            R = new_R
-            # Print the intermediate results
-            print("Round", round_num+1)
-            print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
-            print("XOR with Round Key:", substituted_R.get_hex_string_from_bitvector())
-            print("Substituted Right Block:", permuted_R.get_hex_string_from_bitvector())
-            print("Permuted Right Block:", new_R.get_hex_string_from_bitvector())
-            print("After XOR with Left Block:")
-            print("Left Block:", L.get_hex_string_from_bitvector())
-            print("Right Block:", R.get_hex_string_from_bitvector())
+        while message.more_to_read:
+            bv = message.read_bits_from_file(64)
+            if len(bv) < 64:
+                bv.pad_from_right(64-len(bv))
+            [L, R] = bv.divide_into_two()
+            print("First block as a bit vector:", L.get_hex_string_from_bitvector(), ",", R.get_hex_string_from_bitvector())
+            #16 rounds of DES
+            for round_num in range(1):
+                #perform the expansion permutation on the right half
+                expanded_R = R.permute(self.expansion_permutation)
+                print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+                #XOR the expanded half with the round key
+                expanded_R ^= round_keys[round_num]
+                print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+                #perform the substitution step
+                substituted_R = self.substitute(expanded_R)
+                #perform the permutation step
+                permuted_R = substituted_R.permute(self.p_box)
+                #XOR the permuted half with the left half
+                new_R = permuted_R ^ L
+                #the left half becomes the right half
+                L = R
+                #the right half becomes the new right half
+                R = new_R
+                # Print the intermediate results
+                print("sbox sub:", substituted_R.get_hex_string_from_bitvector())
+                print("pbox sub:", permuted_R.get_hex_string_from_bitvector())
+                print("xored with left", new_R.get_hex_string_from_bitvector())
+                print("Left Block:", L.get_hex_string_from_bitvector())
+                print("Right Block:", R.get_hex_string_from_bitvector())
 
     # decrypt method declaration
     # inputs: message_file(str), outfile(str)
