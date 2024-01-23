@@ -70,23 +70,113 @@ class DES():
                             [1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 10, 14, 9, 2],
                             [7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8],
                             [2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11]]
-
-
+        self.p_box = [15, 6, 19, 20, 28, 11,
+                        27, 16, 0, 14, 22, 25,
+                        4, 17, 30, 9, 1, 7,
+                        23, 13, 31, 26, 2, 8,
+                        18, 12, 29, 5, 21, 10,
+                        3, 24]
+        self.key_permutation_1 = [56, 48, 40, 32, 24, 16, 8,
+                                    0, 57, 49, 41, 33, 25, 17,
+                                    9, 1, 58, 50, 42, 34, 26,
+                                    18, 10, 2, 59, 51, 43, 35,
+                                    62, 54, 46, 38, 30, 22, 14,
+                                    6, 61, 53, 45, 37, 29, 21,
+                                    13, 5, 60, 52, 44, 36, 28,
+                                    20, 12, 4, 27, 19, 11, 3]
+        self.key_permutation_2 = [13, 16, 10, 23, 0, 4,
+                                    2, 27, 14, 5, 20, 9,
+                                    22, 18, 11, 3, 25, 7,
+                                    15, 6, 26, 19, 12, 1,
+                                    40, 51, 30, 36, 46, 54,
+                                    29, 39, 50, 44, 32, 47,
+                                    43, 48, 38, 55, 33, 52,
+                                    45, 41, 49, 35, 28, 31]
+        self.shifts_for_round_key_gen = [1, 1, 2, 2,
+                                            2, 2, 2, 2,
+                                            1, 2, 2, 2,
+                                            2, 2, 2, 1]
+        self.key = BitVector(filename=key)
+    def generate_round_keys(self, encryption_key):
+        round_keys = []
+        key = encryption_key.deep_copy()
+        for round_num in range(16):
+            [LKey, RKey] = key.divide_into_two()
+            #perform the left circular shift on the two halves
+            shift = self.shifts_for_round_key_gen[round_num]
+            LKey << shift
+            RKey << shift
+            #perform the permutation on the two halves
+            key = LKey + RKey
+            round_key = key.permute(self.key_permutation_2)
+            round_keys.append(round_key)
+        return round_keys
+    #subsitution needed for the right half of the input in each round
+    #this does not include XORing with the round key, that must be carried out on the expanded right-half block
+    #before it is subject to the S-box based substitution step here
+    def substitute(self, expanded_half_block):
+        #substitutes each byte in the expanded half block using the s-boxes
+        #returns the substituted half block
+        output = BitVector(size=32)
+        segments = [expanded_half_block[i*6:i*6+6] for i in range(8)]
+        for s_index in range(len(segments)):
+            row = 2*segments[s_index][0] + segments[s_index][-1]
+            column = int(segments[s_index][1:-1])
+            output[s_index*4:s_index*4+4] = BitVector(intVal=self.s_boxes[s_index][row][column], size=4)
+        return output
+    
     def encrypt(self, message_file, outfile):
         #encrypts the contents of the message file and writes the ciphertext to the outfile
+        #read the message file
+        message = BitVector(filename=message_file)
+        #get the key
+        key = self.key
+        #perform the initial permutation on the key
+        key = key.permute(self.key_permutation_1)
+        #generate the round keys
+        round_keys = self.generate_round_keys(key)
+        #perform the initial permutation on the message
+        message = message.permute(self.initial_permutation)
+        #split the message into two halves
+        [L, R] = message.divide_into_two()
+        #16 rounds of DES
+        for round_num in range(1):
+            #perform the expansion permutation on the right half
+            expanded_R = R.permute(self.expansion_permutation)
+            #XOR the expanded half with the round key
+            expanded_R ^= round_keys[round_num]
+            #perform the substitution step
+            substituted_R = self.substitute(expanded_R)
+            #perform the permutation step
+            permuted_R = substituted_R.permute(self.p_box)
+            #XOR the permuted half with the left half
+            new_R = permuted_R ^ L
+            #the left half becomes the right half
+            L = R
+            #the right half becomes the new right half
+            R = new_R
+            # Print the intermediate results
+            print("Round", round_num+1)
+            print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+            print("XOR with Round Key:", substituted_R.get_hex_string_from_bitvector())
+            print("Substituted Right Block:", permuted_R.get_hex_string_from_bitvector())
+            print("Permuted Right Block:", new_R.get_hex_string_from_bitvector())
+            print("After XOR with Left Block:")
+            print("Left Block:", L.get_hex_string_from_bitvector())
+            print("Right Block:", R.get_hex_string_from_bitvector())
 
     # decrypt method declaration
     # inputs: message_file(str), outfile(str)
     # outputs: none
-    def decrypt(self, message_file, outfile):
-        #decrypts the contents of the message file and writes the plaintext to the outfile
+    # def decrypt(self, message_file, outfile):
+    #     #decrypts the contents of the message file and writes the plaintext to the outfile
 
 if __name__ == '__main__':
     cipher = DES(key=sys.argv[3])
     if sys.argv[1] == '-e':
         cipher.encrypt(message_file=sys.argv[2], outfile=sys.argv[4])
-    elif sys.argv[1] == '-d':
-        cipher.decrypt(message_file=sys.argv[2], outfile=sys.argv[4])
+    # elif sys.argv[1] == '-d':
+    #     cipher.decrypt(message_file=sys.argv[2], outfile=sys.argv[4])
 #example usage:
 #python3 DES.py -e message.txt key.txt encrypted.txt
 #python3 DES.py -d encrypted.txt key.txt decrypted.txt
