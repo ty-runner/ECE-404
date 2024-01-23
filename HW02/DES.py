@@ -150,13 +150,13 @@ class DES():
             [L, R] = bv.divide_into_two()
             print("First block as a bit vector:", L.get_hex_string_from_bitvector(), ",", R.get_hex_string_from_bitvector())
             #16 rounds of DES
-            for round_num in range(1):
+            for round_key in round_keys:
                 #perform the expansion permutation on the right half
                 expanded_R = R.permute(self.expansion_permutation)
-                print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+                #print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
                 #XOR the expanded half with the round key
-                expanded_R ^= round_keys[round_num]
-                print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+                expanded_R ^= round_key
+                #print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
                 #perform the substitution step
                 substituted_R = self.substitute(expanded_R)
                 #perform the permutation step
@@ -168,12 +168,9 @@ class DES():
                 #the right half becomes the new right half
                 R = new_R
                 # Print the intermediate results
-                print("sbox sub:", substituted_R.get_hex_string_from_bitvector())
-                print("pbox sub:", permuted_R.get_hex_string_from_bitvector())
-                print("xored with left", new_R.get_hex_string_from_bitvector())
-                print("Left Block:", L.get_hex_string_from_bitvector())
-                print("Right Block:", R.get_hex_string_from_bitvector())
-
+            #print the first block of plaintext after performing the 16 rounds of DES
+            output = R + L
+            print("After round 16, the first block is:", output.get_hex_string_from_bitvector())
     # decrypt method declaration
     # inputs: message_file(str), outfile(str)
     # outputs: none
