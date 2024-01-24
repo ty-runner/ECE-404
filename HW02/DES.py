@@ -96,13 +96,16 @@ class DES():
                                             2, 2, 2, 2,
                                             1, 2, 2, 2,
                                             2, 2, 2, 1]
-        self.key = self.read_key(key)
+        self.key = key
+    #correct
     def read_key(self, key_file):
         with open(key_file, 'r') as key:
-            key = key.read()
+            key = key.readlines()[0]
         print(key)
         key = BitVector(textstring=key)
+        key = key.permute(self.key_permutation_1)
         return key
+    #correct
     def generate_round_keys(self, encryption_key):
         round_keys = []
         key = encryption_key.deep_copy()
@@ -123,6 +126,7 @@ class DES():
     def substitute(self, expanded_half_block):
         #substitutes each byte in the expanded half block using the s-boxes
         #returns the substituted half block
+        #correct
         output = BitVector(size=32)
         segments = [expanded_half_block[i*6:i*6+6] for i in range(8)]
         for s_index in range(len(segments)):
@@ -132,54 +136,40 @@ class DES():
         return output
     
     def encrypt(self, message_file, outfile):
-        #encrypts the contents of the message file and writes the ciphertext to the outfile
-        #read the message file
+        # encrypts the contents of the message file and writes the ciphertext to the outfile
+        # read the message file
         message = BitVector(filename=message_file)
         outfile = open(outfile, 'w')
-        #get the key
-        key = self.key
-        #perform the initial permutation on the key
-        key = key.permute(self.key_permutation_1)
-        #generate the round keys
+        key = self.read_key(self.key)
         round_keys = self.generate_round_keys(key)
-        #split the message into two halves
         while message.more_to_read:
             bv = message.read_bits_from_file(64)
             if len(bv) > 0:
-                if len(bv) < 64:
-                    bv.pad_from_right(64-len(bv))
+                if len(bv) != 64:
+                    bv.pad_from_right(64 - len(bv))
                 [L, R] = bv.divide_into_two()
-                print("First block as a bit vector:", L.get_hex_string_from_bitvector(), ",", R.get_hex_string_from_bitvector())
-                #16 rounds of DES
-                for round_key in range(16):
-                    #perform the expansion permutation on the right half
+                #print("First block as a bit vector:", L.get_hex_string_from_bitvector(), ",", R.get_hex_string_from_bitvector())
+                # 16 rounds of DES
+                for round_key in round_keys:
                     expanded_R = R.permute(self.expansion_permutation)
                     #print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
-                    #XOR the expanded half with the round key
-                    expanded_R ^= round_keys[round_key]
+                    expanded_R ^= round_key
                     #print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
-                    #perform the substitution step
                     substituted_R = self.substitute(expanded_R)
-                    #perform the permutation step
+                    #print("Substituted Right Block:", substituted_R.get_hex_string_from_bitvector())
                     permuted_R = substituted_R.permute(self.p_box)
-                    #XOR the permuted half with the left half
+                    #print("Permuted Right Block:", permuted_R.get_hex_string_from_bitvector())
                     new_R = permuted_R ^ L
-                    #the left half becomes the right half
-                    L = R
-                    print("Left Block:", L.get_hex_string_from_bitvector())
-                    #the right half becomes the new right half
-                    R = new_R
-                    print("Right Block:", R.get_hex_string_from_bitvector())
-                    # Print the intermediate results
-                #print the first block of plaintext after performing the 16 rounds of DES
-                output = R + L
-                outfile.write(output.get_hex_string_from_bitvector())
+                    #print("xor with left block:", new_R.get_hex_string_from_bitvector())
+                    LE = R
+                    #print("Left Block:", L.get_hex_string_from_bitvector())
+                    RE = new_R
+                    #print("Right Block:", R.get_hex_string_from_bitvector())
+                output = RE + LE
+                ciphertext = output.get_bitvector_in_hex()
+                outfile.write(ciphertext)
                 print("After round 16, the first block is:", output.get_hex_string_from_bitvector())
-    # decrypt method declaration
-    # inputs: message_file(str), outfile(str)
-    # outputs: none
-    # def decrypt(self, message_file, outfile):
-    #     #decrypts the contents of the message file and writes the plaintext to the outfile
+        outfile.close()
 
 if __name__ == '__main__':
     cipher = DES(key=sys.argv[3])
