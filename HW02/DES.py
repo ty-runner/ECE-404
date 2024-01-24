@@ -135,6 +135,25 @@ class DES():
             output[s_index*4:s_index*4+4] = BitVector(intVal=self.s_boxes[s_index][row][column], size=4)
         return output
     
+    def feistel(self, round_keys, L, R):
+        for round_key in round_keys:
+            expanded_R = R.permute(self.expansion_permutation)
+            #print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+            xored_with_key = expanded_R ^ round_key
+            #print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
+            substituted_R = self.substitute(xored_with_key)
+            #print("Substituted Right Block:", substituted_R.get_hex_string_from_bitvector())
+            permuted_R = substituted_R.permute(self.p_box)
+            #print("Permuted Right Block:", permuted_R.get_hex_string_from_bitvector())
+            #print("xor with left block:", new_R.get_hex_string_from_bitvector())
+            #print("Left Block:", L.get_hex_string_from_bitvector())
+            temp = R
+            new_R = permuted_R ^ L
+            L = temp
+            R = new_R
+            #print("Right Block:", R.get_hex_string_from_bitvector())
+        return R + L
+    
     def encrypt(self, message_file, outfile):
         # encrypts the contents of the message file and writes the ciphertext to the outfile
         # read the message file
@@ -144,31 +163,14 @@ class DES():
         round_keys = self.generate_round_keys(key)
         while message.more_to_read:
             bv = message.read_bits_from_file(64)
-            if len(bv) > 0:
-                if len(bv) != 64:
-                    bv.pad_from_right(64 - len(bv))
-                [L, R] = bv.divide_into_two()
-                #print("First block as a bit vector:", L.get_hex_string_from_bitvector(), ",", R.get_hex_string_from_bitvector())
-                # 16 rounds of DES
-                for round_key in round_keys:
-                    expanded_R = R.permute(self.expansion_permutation)
-                    #print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
-                    expanded_R ^= round_key
-                    #print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
-                    substituted_R = self.substitute(expanded_R)
-                    #print("Substituted Right Block:", substituted_R.get_hex_string_from_bitvector())
-                    permuted_R = substituted_R.permute(self.p_box)
-                    #print("Permuted Right Block:", permuted_R.get_hex_string_from_bitvector())
-                    new_R = permuted_R ^ L
-                    #print("xor with left block:", new_R.get_hex_string_from_bitvector())
-                    LE = R
-                    #print("Left Block:", L.get_hex_string_from_bitvector())
-                    RE = new_R
-                    #print("Right Block:", R.get_hex_string_from_bitvector())
-                output = RE + LE
-                ciphertext = output.get_bitvector_in_hex()
-                outfile.write(ciphertext)
-                print("After round 16, the first block is:", output.get_hex_string_from_bitvector())
+            if len(bv) != 64:
+                bv.pad_from_right(64 - len(bv))
+            [L, R] = bv.divide_into_two()
+            # 16 rounds of DES
+            output = self.feistel(round_keys, L, R)
+            ciphertext = output.get_bitvector_in_hex()
+            outfile.write(ciphertext)
+            print("After round 16, the first block is:", ciphertext)
         outfile.close()
 
 if __name__ == '__main__':
