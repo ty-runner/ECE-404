@@ -101,7 +101,6 @@ class DES():
     def read_key(self, key_file):
         with open(key_file, 'r') as key:
             key = key.readlines()[0]
-        print(key)
         key = BitVector(textstring=key)
         key = key.permute(self.key_permutation_1)
         return key
@@ -161,7 +160,9 @@ class DES():
         outfile = open(outfile, 'w')
         key = self.read_key(self.key)
         round_keys = self.generate_round_keys(key)
-        while message.more_to_read:
+        i = 0
+        #while message.more_to_read:
+        while i < 2:
             bv = message.read_bits_from_file(64)
             if len(bv) != 64:
                 bv.pad_from_right(64 - len(bv))
@@ -170,13 +171,32 @@ class DES():
             output = self.feistel(round_keys, L, R)
             ciphertext = output.get_bitvector_in_hex()
             outfile.write(ciphertext)
-            #print("After round 16, the first block is:", ciphertext)
+            print("After round 16, the first block is:", ciphertext)
+            i+=1
+        outfile.close()
+    
+    def decrypt(self, message_file, outfile):
+        # decrypts the contents of the message file and writes the plaintext to the outfile
+        # read the message file
+        message = BitVector(filename=message_file)
+        outfile = open(outfile, 'w')
+        key = self.read_key(self.key)
+        round_keys = self.generate_round_keys(key)
+        round_keys.reverse()
+        while message.more_to_read:
+            bv = message.read_bits_from_file(64)
+            if len(bv) != 64:
+                bv.pad_from_right(64 - len(bv))
+            [L, R] = bv.divide_into_two()
+            # 16 rounds of DES
+            output = self.feistel(round_keys, R, L)
+            plaintext = output.get_bitvector_in_ascii()
+            outfile.write(plaintext)
         outfile.close()
     def encrypt_image(self, image_file, outfile):
         # encrypts the contents of the message file and writes the ciphertext to the outfile
         # read the message file
         image = BitVector(filename=image_file)
-        print(image.length())
         FILEIN = open(image_file, 'rb')
         FILEOUT = open(outfile, 'wb')
         header = []
@@ -201,8 +221,8 @@ if __name__ == '__main__':
     cipher = DES(key=sys.argv[3])
     if sys.argv[1] == '-e':
         cipher.encrypt(message_file=sys.argv[2], outfile=sys.argv[4])
-    # elif sys.argv[1] == '-d':
-    #     cipher.decrypt(message_file=sys.argv[2], outfile=sys.argv[4])
+    elif sys.argv[1] == '-d':
+        cipher.decrypt(message_file=sys.argv[2], outfile=sys.argv[4])
     elif sys.argv[1] == '-i':
         cipher.encrypt_image(image_file=sys.argv[2], outfile=sys.argv[4])
 #example usage:
