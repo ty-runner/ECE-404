@@ -136,21 +136,21 @@ class DES():
         return output
     
     def feistel(self, round_keys, L, R):
-        for round_key in round_keys:
+        for round_key in range(1):
             expanded_R = R.permute(self.expansion_permutation)
             #print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
-            xored_with_key = expanded_R ^ round_key
+            xored_with_key = expanded_R ^ round_keys[round_key]
             #print("XOR Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
             substituted_R = self.substitute(xored_with_key)
             #print("Substituted Right Block:", substituted_R.get_hex_string_from_bitvector())
             permuted_R = substituted_R.permute(self.p_box)
             #print("Permuted Right Block:", permuted_R.get_hex_string_from_bitvector())
-            #print("xor with left block:", new_R.get_hex_string_from_bitvector())
-            #print("Left Block:", L.get_hex_string_from_bitvector())
             temp = R
             new_R = permuted_R ^ L
+            #print("xor with left block:", new_R.get_hex_string_from_bitvector())
             L = temp
             R = new_R
+            print("Left Block:", L.get_hex_string_from_bitvector(), "Right Block:", R.get_hex_string_from_bitvector())
             #print("Right Block:", R.get_hex_string_from_bitvector())
         return R + L
     
@@ -170,7 +170,7 @@ class DES():
             output = self.feistel(round_keys, L, R)
             ciphertext = output.get_bitvector_in_hex()
             outfile.write(ciphertext)
-            print("After round 16, the first block is:", ciphertext)
+            #print("After round 16, the first block is:", ciphertext)
         outfile.close()
     def encrypt_image(self, image_file, outfile):
         # encrypts the contents of the message file and writes the ciphertext to the outfile
