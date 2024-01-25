@@ -172,6 +172,28 @@ class DES():
             outfile.write(ciphertext)
             print("After round 16, the first block is:", ciphertext)
         outfile.close()
+    def encrypt_image(self, image_file, outfile):
+        # encrypts the contents of the message file and writes the ciphertext to the outfile
+        # read the message file
+        image = BitVector(filename=image_file)
+        FILEIN = open(image_file, 'rb')
+        FILEOUT = open(outfile, 'wb')
+        header = []
+        for _ in range(3):
+            header.append(FILEIN.readline())
+        bits_in_header = image.read_bits_from_file(14*8) #LEAVE OUT
+        key = self.read_key(self.key)
+        round_keys = self.generate_round_keys(key)
+        while image.more_to_read:
+            bv = image.read_bits_from_file(64)
+            if len(bv) != 64:
+                bv.pad_from_right(64 - len(bv))
+            [L, R] = bv.divide_into_two()
+            # 16 rounds of DES
+            output = self.feistel(round_keys, L, R)
+            output.write_to_file(FILEOUT)
+        FILEIN.close()
+        FILEOUT.close()
 
 if __name__ == '__main__':
     cipher = DES(key=sys.argv[3])
@@ -179,6 +201,8 @@ if __name__ == '__main__':
         cipher.encrypt(message_file=sys.argv[2], outfile=sys.argv[4])
     # elif sys.argv[1] == '-d':
     #     cipher.decrypt(message_file=sys.argv[2], outfile=sys.argv[4])
+    elif sys.argv[1] == '-i':
+        cipher.encrypt_image(image_file=sys.argv[2], outfile=sys.argv[4])
 #example usage:
 #python3 DES.py -e message.txt key.txt encrypted.txt
 #python3 DES.py -d encrypted.txt key.txt decrypted.txt
