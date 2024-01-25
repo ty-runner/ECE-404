@@ -176,11 +176,13 @@ class DES():
         # encrypts the contents of the message file and writes the ciphertext to the outfile
         # read the message file
         image = BitVector(filename=image_file)
+        print(image.length())
         FILEIN = open(image_file, 'rb')
         FILEOUT = open(outfile, 'wb')
         header = []
         for _ in range(3):
             header.append(FILEIN.readline())
+        FILEOUT.writelines(header)
         bits_in_header = image.read_bits_from_file(14*8) #LEAVE OUT
         key = self.read_key(self.key)
         round_keys = self.generate_round_keys(key)
