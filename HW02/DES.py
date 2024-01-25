@@ -136,7 +136,7 @@ class DES():
         return output
     
     def feistel(self, round_keys, L, R):
-        for round_key in range(1):
+        for round_key in range(16):
             expanded_R = R.permute(self.expansion_permutation)
             #print("Expanded Right Block:", expanded_R.get_hex_string_from_bitvector())
             xored_with_key = expanded_R ^ round_keys[round_key]
