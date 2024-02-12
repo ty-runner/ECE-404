@@ -75,51 +75,100 @@ class AES():
         for i in range(1, 4):
             state_array[i] = state_array[i][i:] + state_array[i][:i]
         return state_array
-    def one_round(self, bv: BitVector, round_key) -> BitVector:
+    def inverse_shift_rows(self, state_array: list) -> list:
+        for i in range(1, 4):
+            state_array[i] = state_array[i][4-i:] + state_array[i][:4-i]
+        return state_array
+    def encrypt_round(self, bv: BitVector, round_key) -> BitVector:
         state_array = self.to_state_array(bv)
         for i in range(4):
             for j in range(4):
                 state_array[i][j] = BitVector(intVal=self.encryption_sbox[state_array[i][j].intValue()], size=8)
-        print("Step 3" , self.to_bit_vector(state_array).get_hex_string_from_bitvector())
         state_array = self.shift_rows(state_array)
-        print("Step 4", self.to_bit_vector(state_array).get_hex_string_from_bitvector())
         state_array_copy = copy.deepcopy(state_array)
         constants = [BitVector(hexstring="02"), BitVector(hexstring="03"), BitVector(hexstring="01"), BitVector(hexstring="01")]
         for i in range(4):
             for j in range(4):
                 out = BitVector(size=8)
                 for k in range(4):
-                    out ^= state_array_copy[k][j].gf_multiply_modular(constants[k-i], AES_modulus, 8)
-                state_array[i][j] = out
+                    out ^= state_array_copy[k][i].gf_multiply_modular(constants[k-j], AES_modulus, 8)
+                state_array[j][i] = out
         output = self.to_bit_vector(state_array)
-        print("Step 5", output.get_hex_string_from_bitvector())
         return output ^ round_key
+    def encrypt_last_round(self, bv: BitVector, round_key) -> BitVector:
+        state_array = self.to_state_array(bv)
+        for i in range(4):
+            for j in range(4):
+                state_array[i][j] = BitVector(intVal=self.encryption_sbox[state_array[i][j].intValue()], size=8)
+        state_array = self.shift_rows(state_array)
+        output = self.to_bit_vector(state_array)
+        return output ^ round_key
+    def decrypt_round(self, bv: BitVector, round_key) -> BitVector:
+        state_array = self.to_state_array(bv)
+        state_array = self.inverse_shift_rows(state_array)
+        for i in range(4):
+            for j in range(4):
+                state_array[i][j] = BitVector(intVal=self.decryption_sbox[state_array[i][j].intValue()], size=8)
+        bitvec = self.to_bit_vector(state_array)
+        bitvec ^= round_key
+        state_array = self.to_state_array(bitvec)
+        state_array_copy = copy.deepcopy(state_array)
+        constants = [BitVector(hexstring="0E"), BitVector(hexstring="0B"), BitVector(hexstring="0D"), BitVector(hexstring="09")]
+        for i in range(4):
+            for j in range(4):
+                out = BitVector(size=8)
+                for k in range(4):
+                    out ^= state_array_copy[k][i].gf_multiply_modular(constants[k-j], AES_modulus, 8)
+                state_array[j][i] = out
+        output = self.to_bit_vector(state_array)
+        return output
+    def decrypt_last_round(self, bv: BitVector, round_key) -> BitVector:
+        state_array = self.to_state_array(bv)
+        state_array = self.inverse_shift_rows(state_array)
+        for i in range(4):
+            for j in range(4):
+                state_array[i][j] = BitVector(intVal=self.decryption_sbox[state_array[i][j].intValue()], size=8)
+        bitvec = self.to_bit_vector(state_array)
+        bitvec ^= round_key
+        return bitvec
     def encrypt(self, plaintext:str, ciphertext:str) -> None:
         #each round of AES involves the following 4 steps:
         #1. Single-byte Substitution
-
         #2. Row-wise permutation
         #3. Column-wise mixing
         #4. Key addition
+        #LAST ROUND NO COLUMN MIXING
         bv = BitVector(filename=plaintext)
         FILEOUT = open(ciphertext, 'w')
-        #while bv.more_to_read:
-        bitvec = bv.read_bits_from_file(128)
-        print("Step 1", bitvec.get_hex_string_from_bitvector())
-        if bitvec.length() > 0:
-            if bitvec.length() < 128:
-                bitvec.pad_from_right(128 - bitvec.length())
-            key = self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3]
-            bitvec ^= key
-            print("Step 2", bitvec.get_hex_string_from_bitvector())
-            #for i in range(1, 14):
-            i = 0
-            key = self.key_schedule[(i+1)*4] + self.key_schedule[(i+1)*4+1] + self.key_schedule[(i+1)*4+2] + self.key_schedule[(i+1)*4+3]
-            bitvec = self.one_round(bitvec, key)
-            print("Step 6", bitvec.get_hex_string_from_bitvector())
-            bitvec.write_to_file(FILEOUT)
-        #return bv.write_to_file(FILEOUT)
-        pass
+        while bv.more_to_read:
+            bitvec = bv.read_bits_from_file(128)
+            if bitvec.length() > 0:
+                if bitvec.length() < 128:
+                    bitvec.pad_from_right(128 - bitvec.length())
+                key = self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3]
+                bitvec ^= key
+                for i in range(13):
+                    key = self.key_schedule[(i+1)*4] + self.key_schedule[(i+1)*4+1] + self.key_schedule[(i+1)*4+2] + self.key_schedule[(i+1)*4+3]
+                    bitvec = self.encrypt_round(bitvec, key)
+                bitvec = self.encrypt_last_round(bitvec, self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59])
+                FILEOUT.write(bitvec.get_bitvector_in_hex())
+        FILEOUT.close()
+    def decrypt(self, ciphertext:str, decrypted:str) -> None:
+        bv = BitVector(filename=ciphertext)
+        FILEOUT = open(decrypted, 'wb')
+        while bv.more_to_read:
+            bitvec = bv.read_bits_from_file(128)
+            if bitvec.length() > 0:
+                if bitvec.length() < 128:
+                    bitvec.pad_from_right(128 - bitvec.length())
+                key = self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59]
+                bitvec ^= key
+                for i in range(13):
+                    key = self.key_schedule[56-(i+1)*4] + self.key_schedule[57-(i+1)*4] + self.key_schedule[58-(i+1)*4] + self.key_schedule[59-(i+1)*4]
+                    bitvec = self.decrypt_round(bitvec, key)
+                output = self.decrypt_last_round(bitvec, self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3])
+                output.write_to_file(FILEOUT)
+        FILEOUT.close()
 
 
 if __name__ == "__main__":
@@ -127,5 +176,7 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "-e":
         cipher.encrypt(plaintext=sys.argv[2], ciphertext=sys.argv[4])
+    elif sys.argv[1] == "-d":
+        cipher.decrypt(ciphertext=sys.argv[2], decrypted=sys.argv[4])
     else:
         sys.exit("Incorrect command syntax")
