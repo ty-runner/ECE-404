@@ -13,24 +13,24 @@ def gee(keyword, round_constant, byte_sub_table):
     round_constant = round_constant.gf_multiply_modular(BitVector(intVal=0x02), AES_modulus, 8)
     return newword, round_constant
 def genTables(): # Generate the SBox and inverse SBox tables for AES byte substitution
-        subBytesTable = []
-        invSubBytesTable = []
-        c = BitVector(bitstring='01100011')
-        d = BitVector(bitstring='00000101')
-        for i in range(0,256):
-            a = BitVector(intVal=i, size=8).gf_MI(AES_modulus, 8) if i != 0 else BitVector(intVal=0)
-            #for bit scrambling for SBox entries
-            a1, a2, a3, a4 = [a.deep_copy() for x in range(4)]
-            a ^= (a1 >> 4) ^ (a2 >> 5) ^ (a3 >> 6) ^ (a4 >> 7) ^ c
-            subBytesTable.append(int(a))
-            # For the decryption process
-            b = BitVector(intVal=i, size=8)
-            b1, b2, b3 = [b.deep_copy() for x in range(3)]
-            b = (b1 >> 2) ^ (b2 >> 5) ^ (b3 >> 7) ^ d
-            check = b.gf_MI(AES_modulus, 8)
-            b = check if isinstance(check, BitVector) else 0
-            invSubBytesTable.append(int(b))
-        return subBytesTable, invSubBytesTable
+    subBytesTable = []
+    invSubBytesTable = []
+    c = BitVector(bitstring='01100011')
+    d = BitVector(bitstring='00000101')
+    for i in range(0,256):
+        a = BitVector(intVal=i, size=8).gf_MI(AES_modulus, 8) if i != 0 else BitVector(intVal=0)
+        #for bit scrambling for SBox entries
+        a1, a2, a3, a4 = [a.deep_copy() for x in range(4)]
+        a ^= (a1 >> 4) ^ (a2 >> 5) ^ (a3 >> 6) ^ (a4 >> 7) ^ c
+        subBytesTable.append(int(a))
+        # For the decryption process
+        b = BitVector(intVal=i, size=8)
+        b1, b2, b3 = [b.deep_copy() for x in range(3)]
+        b = (b1 >> 2) ^ (b2 >> 5) ^ (b3 >> 7) ^ d
+        check = b.gf_MI(AES_modulus, 8)
+        b = check if isinstance(check, BitVector) else 0
+        invSubBytesTable.append(int(b))
+    return subBytesTable, invSubBytesTable
 class AES():
     def __init__(self, key_file:str) -> None:
         self.key = self.read_key(key_file)
@@ -60,9 +60,9 @@ class AES():
                 sys.exit("error in key scheduling algo for i = %d" % i)
         return key_words
     def read_key(self, key_file:str) -> BitVector:
-        with open(key_file) as file:
-            key = file.read()
-        return BitVector(textstring=key)
+        bv = BitVector(filename=key_file)
+        key = bv.read_bits_from_file(256)
+        return key
     def to_state_array(self, bv: BitVector) -> list:
         return [[bv[j*32+i*8:j*32+i*8+8] for j in range(4)] for i in range(4)]
     def to_bit_vector(self, state_array: list) -> BitVector:
@@ -71,6 +71,7 @@ class AES():
             for j in range(4):
                 bv += state_array[j][i]
         return bv
+    
     def shift_rows(self, state_array: list) -> list:
         for i in range(1, 4):
             state_array[i] = state_array[i][i:] + state_array[i][:i]
@@ -79,6 +80,7 @@ class AES():
         for i in range(1, 4):
             state_array[i] = state_array[i][4-i:] + state_array[i][:4-i]
         return state_array
+    
     def encrypt_round(self, bv: BitVector, round_key) -> BitVector:
         state_array = self.to_state_array(bv)
         for i in range(4):
@@ -154,10 +156,12 @@ class AES():
                 FILEOUT.write(bitvec.get_bitvector_in_hex())
         FILEOUT.close()
     def decrypt(self, ciphertext:str, decrypted:str) -> None:
-        bv = BitVector(filename=ciphertext)
+        with open (ciphertext, 'r') as FILEIN:
+            bv = BitVector(hexstring=FILEIN.read())
         FILEOUT = open(decrypted, 'wb')
-        while bv.more_to_read:
-            bitvec = bv.read_bits_from_file(128)
+        while bv.length() > 0:
+            bitvec = bv[:128]
+            bv = bv[128:]
             if bitvec.length() > 0:
                 if bitvec.length() < 128:
                     bitvec.pad_from_right(128 - bitvec.length())
