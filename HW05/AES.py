@@ -173,7 +173,7 @@ class AES():
                 output.write_to_file(FILEOUT)
         FILEOUT.close()
     def ctr_aes_image(self, iv, image_file, enc_image):
-        bv_iv = BitVector(textstring=iv)
+        bv_iv = iv
         bv = BitVector(filename=image_file)
         FILEOUT = open(enc_image, 'wb')
         while bv.more_to_read:
