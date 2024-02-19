@@ -172,6 +172,29 @@ class AES():
                 output = self.decrypt_last_round(bitvec, self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3])
                 output.write_to_file(FILEOUT)
         FILEOUT.close()
+    def encrypt_block(self, plaintext:BitVector) -> None:
+    #each round of AES involves the following 4 steps:
+    #1. Single-byte Substitution
+    #2. Row-wise permutation
+    #3. Column-wise mixing
+    #4. Key addition
+    #LAST ROUND NO COLUMN MIXING
+        bv = plaintext.deep_copy()
+
+        while bv.length() > 0:
+            bitvec = bv[:128]
+            bv = bv[128:]
+            if bitvec.length() > 0:
+                if bitvec.length() < 128:
+                    bitvec.pad_from_right(128 - bitvec.length())
+                key = self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3]
+                bitvec ^= key
+                for i in range(13):
+                    key = self.key_schedule[(i+1)*4] + self.key_schedule[(i+1)*4+1] + self.key_schedule[(i+1)*4+2] + self.key_schedule[(i+1)*4+3]
+                    bitvec = self.encrypt_round(bitvec, key)
+                bitvec = self.encrypt_last_round(bitvec, self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59])
+                return bitvec
+    #need to fix
     def ctr_aes_image(self, iv, image_file, enc_image):
         bv_iv = iv
         bv = BitVector(filename=image_file)
@@ -189,8 +212,28 @@ class AES():
                 bitvec = self.encrypt_last_round(bitvec, self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59])
                 bitvec.write_to_file(FILEOUT)
         FILEOUT.close()
+    def x931(self, v0, dt, totalNum, outfile):
+        #v0: 128-bit seed val
+        #dt: 128-bit date/time val
+        #totalNum: number of random numbers to generate
 
-
+        #description: Uses the arguments with the X9.31 algorithm to compute totalNum number
+        # of psuedorandom numbers, each represented as BitVector objects.
+        # encrypt date and time
+        # xor with vi
+        #encrypt total
+        #total is xored with encrypted date and time
+        #then Vi+1 becomes encrypted xor of total and encrypted date and time
+        output = []
+        vi = v0
+        for i in range(totalNum):
+            vi = self.encrypt_block(vi^dt)
+            # convert vi to base 10
+            vi_num = vi.intValue()
+            output.append(vi_num)
+        with open(outfile, 'w') as FILEOUT:
+            for i in output:
+                FILEOUT.write(str(i))
 if __name__ == "__main__":
     cipher = AES(key_file = sys.argv[3])
 
@@ -200,5 +243,7 @@ if __name__ == "__main__":
         cipher.decrypt(ciphertext=sys.argv[2], decrypted=sys.argv[4])
     elif sys.argv[1] == "-i":
         cipher.ctr_aes_image(iv=BitVector(textstring="counter-mode-ctr"), image_file=sys.argv[2], enc_image=sys.argv[4])
+    elif sys.argv[1] == "-r": 
+        cipher.x931(v0=BitVector(textstring="counter-mode-ctr"), dt=BitVector(intVal = 501,size=128), totalNum=int(sys.argv[2]), outfile=sys.argv[4])
     else:
         sys.exit("Incorrect command syntax")
