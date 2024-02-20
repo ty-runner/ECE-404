@@ -180,7 +180,7 @@ class AES():
     #4. Key addition
     #LAST ROUND NO COLUMN MIXING
         bv = plaintext.deep_copy()
-
+        ciphertext = BitVector(size=0)
         while bv.length() > 0:
             bitvec = bv[:128]
             bv = bv[128:]
@@ -193,7 +193,8 @@ class AES():
                     key = self.key_schedule[(i+1)*4] + self.key_schedule[(i+1)*4+1] + self.key_schedule[(i+1)*4+2] + self.key_schedule[(i+1)*4+3]
                     bitvec = self.encrypt_round(bitvec, key)
                 bitvec = self.encrypt_last_round(bitvec, self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59])
-                return bitvec
+                ciphertext += bitvec
+        return ciphertext
     #need to fix
     def ctr_aes_image(self, iv, image_file, enc_image):
         #iv: 128-bit BitVector
@@ -211,7 +212,6 @@ class AES():
             header.append(FILEIN.readline())
         FILEOUT.writelines(header)
         while bv.more_to_read:
-            iv_copy = iv.deep_copy()
             bitvec = bv.read_bits_from_file(128)
             if bitvec.length() > 0:
                 if bitvec.length() < 128:
@@ -219,11 +219,11 @@ class AES():
                 key = self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3]
                 for i in range(13):
                     key = self.key_schedule[(i+1)*4] + self.key_schedule[(i+1)*4+1] + self.key_schedule[(i+1)*4+2] + self.key_schedule[(i+1)*4+3]
-                    iv = self.encrypt_round(iv, key)
+                    rounds = self.encrypt_round(iv, key)
                 key = self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59]
-                out = self.encrypt_last_round(iv, key)
+                out = self.encrypt_last_round(rounds, key)
                 output = out ^ bitvec
-                iv = iv_copy + BitVector(intVal=1, size=128)
+                iv = iv + BitVector(intVal=1, size=128)
                 output.write_to_file(FILEOUT)
         FILEOUT.close()
         FILEIN.close()
