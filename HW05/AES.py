@@ -210,7 +210,9 @@ class AES():
         FILEOUT = open(enc_image, 'wb')
         for _ in range(3):
             header.append(FILEIN.readline())
+        FILEIN.close()
         FILEOUT.writelines(header)
+        bits_in_header = bv.read_bits_from_file(14*8)
         while bv.more_to_read:
             bitvec = bv.read_bits_from_file(128)
             if bitvec.length() > 0:
@@ -225,7 +227,6 @@ class AES():
                 output = out ^ bitvec
                 iv = iv + BitVector(intVal=1, size=128)
                 output.write_to_file(FILEOUT)
-        FILEOUT.close()
         FILEIN.close()
     def x931(self, v0, dt, totalNum, outfile):
         #v0: 128-bit seed val
@@ -241,14 +242,18 @@ class AES():
         #then Vi+1 becomes encrypted xor of total and encrypted date and time
         output = []
         vi = v0
-        for i in range(totalNum):
-            vi = self.encrypt_block(vi^dt)
-            # convert vi to base 10
-            vi_num = vi.intValue()
-            output.append(vi_num)
+        for _ in range(totalNum):
+            enc_dt = self.encrypt_block(dt)
+            vi ^= enc_dt
+            num = self.encrypt_block(vi)
+            output.append(num)
+            next = num ^ enc_dt
+            vi = self.encrypt_block(next)
         with open(outfile, 'w') as FILEOUT:
             for i in output:
+                i = int(i)
                 FILEOUT.write(str(i))
+                FILEOUT.write("\n")
 if __name__ == "__main__":
     cipher = AES(key_file = sys.argv[3])
 
