@@ -200,27 +200,33 @@ class AES():
         #image_file: name of input image file
         #enc_image: name of output encrypted image file
         #description: Uses the CTR mode of AES to encrypt the input image file and write the encrypted image to the output file.
+        
+        #IV and key to be encrypted
+        #encrypted output is xored with the plaintext
+        header = []
         bv = BitVector(filename=image_file)
+        FILEIN = open(image_file, 'rb')
         FILEOUT = open(enc_image, 'wb')
+        for _ in range(3):
+            header.append(FILEIN.readline())
+        FILEOUT.writelines(header)
         while bv.more_to_read:
+            iv_copy = iv.deep_copy()
             bitvec = bv.read_bits_from_file(128)
             if bitvec.length() > 0:
                 if bitvec.length() < 128:
                     bitvec.pad_from_right(128 - bitvec.length())
                 key = self.key_schedule[0] + self.key_schedule[1] + self.key_schedule[2] + self.key_schedule[3]
-                key = key ^ iv
-                bitvec ^= key
                 for i in range(13):
-                    iv = iv + BitVector(intVal=1, size=128)
                     key = self.key_schedule[(i+1)*4] + self.key_schedule[(i+1)*4+1] + self.key_schedule[(i+1)*4+2] + self.key_schedule[(i+1)*4+3]
-                    key = key ^ iv
-                    bitvec = self.encrypt_round(bitvec, key)
-                iv = iv + BitVector(intVal=1, size=128)
+                    iv = self.encrypt_round(iv, key)
                 key = self.key_schedule[56] + self.key_schedule[57] + self.key_schedule[58] + self.key_schedule[59]
-                key = key ^ iv
-                bitvec = self.encrypt_last_round(bitvec, key)
-                bitvec.write_to_file(FILEOUT)
+                out = self.encrypt_last_round(iv, key)
+                output = out ^ bitvec
+                iv = iv_copy + BitVector(intVal=1, size=128)
+                output.write_to_file(FILEOUT)
         FILEOUT.close()
+        FILEIN.close()
     def x931(self, v0, dt, totalNum, outfile):
         #v0: 128-bit seed val
         #dt: 128-bit date/time val
