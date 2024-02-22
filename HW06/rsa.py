@@ -49,6 +49,7 @@ class RSA():
 
     def encrypt(self, plaintext:str, ciphertext:str) -> None:
         #hmmmmmmmmmmm
+        
         return pow(plaintext, self.e, self.n)
     
 if __name__ == "__main__":
