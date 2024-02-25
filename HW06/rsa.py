@@ -27,15 +27,10 @@ class RSA():
         # Read p from file
         with open(p_file, 'r') as file:
             self.p = int(file.read().strip())
-            print(self.p)
-
 
         # Read q from file
         with open(q_file, 'r') as file:
             self.q = int(file.read().strip())
-            print(self.q)
-
-        # Rest of the code...
         # Calc mod n = p * q
         self.n = self.p * self.q
         # Calc phi(n) = (p-1)(q-1)
@@ -47,14 +42,34 @@ class RSA():
         # Private key = [d,n]
         self.private_key = (self.d, self.n)
 
-    def encrypt(self, plaintext:str, ciphertext:str) -> None:
-        #hmmmmmmmmmmm
-        
-        return pow(plaintext, self.e, self.n)
-    
+    def encrypt(self, plaintext:str, ciphertext_file:str) -> None:
+        # Read plaintext from file
+        with open(plaintext, 'r') as file:
+            plaintext = file.read()
+        self.key_generation(sys.argv[3], sys.argv[4])
+        self.e, self.n = self.public_key
+        ciphertext = [pow(ord(char), self.e, self.n) for char in plaintext]
+        ciphertext = ''.join([str(char) for char in ciphertext])
+        with open(ciphertext_file, 'w') as file:
+            file.write(str(ciphertext))     
+        print("Encryption done")   
+    def decrypt(self, ciphertext:str, recovered_plaintext:str) -> None:
+        # Read ciphertext from file
+        with open(ciphertext, 'r') as file:
+            ciphertext = file.read()
+        self.key_generation(sys.argv[3], sys.argv[4])
+        self.d, self.n = self.private_key
+        plaintext = ''.join([chr(pow(int(char), self.d, self.n)) for char in ciphertext])
+        with open(recovered_plaintext, 'w') as file:
+            file.write(plaintext)
+        print("Decryption done")
 if __name__ == "__main__":
     cipher = RSA(e=65537)
     if sys.argv[1] == "-g":
         cipher.key_generation(p_file=sys.argv[2], q_file=sys.argv[3])
         print("Keys generated")
+    if sys.argv[1] == "-e":
+        cipher.encrypt(plaintext=sys.argv[2], ciphertext_file=sys.argv[5])
+    if sys.argv[1] == "-d":
+        cipher.decrypt(ciphertext=sys.argv[2], recovered_plaintext=sys.argv[5])
     
