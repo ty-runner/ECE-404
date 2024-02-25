@@ -1,6 +1,7 @@
 import BitVector
 import sys
 import random
+import binascii
 
 class RSA():
     def __init__(self, e) -> None:
@@ -44,24 +45,32 @@ class RSA():
 
     def encrypt(self, plaintext:str, ciphertext_file:str) -> None:
         # Read plaintext from file
-        with open(plaintext, 'r') as file:
-            plaintext = file.read()
+        plaintext_bv = BitVector.BitVector(filename=plaintext)
         self.key_generation(sys.argv[3], sys.argv[4])
         self.e, self.n = self.public_key
-        ciphertext = [pow(ord(char), self.e, self.n) for char in plaintext]
-        ciphertext = ''.join([str(char) for char in ciphertext])
         with open(ciphertext_file, 'w') as file:
-            file.write(str(ciphertext))     
+            while plaintext_bv.more_to_read:
+                bitvec = plaintext_bv.read_bits_from_file(128)
+                if bitvec.length() < 128:
+                    bitvec.pad_from_right(128 - bitvec.length())
+                bitvec.pad_from_left(128)
+                plain_num = int(bitvec)
+                ciphertext = pow(plain_num, self.e, self.n)
+                output = BitVector.BitVector(intVal=ciphertext, size=256)
+                file.write(output.get_bitvector_in_hex())
         print("Encryption done")   
     def decrypt(self, ciphertext:str, recovered_plaintext:str) -> None:
         # Read ciphertext from file
-        with open(ciphertext, 'r') as file:
-            ciphertext = file.read()
+        ciphertext_bv = BitVector.BitVector(filename=ciphertext)
         self.key_generation(sys.argv[3], sys.argv[4])
         self.d, self.n = self.private_key
-        plaintext = ''.join([chr(pow(int(char), self.d, self.n)) for char in ciphertext])
         with open(recovered_plaintext, 'w') as file:
-            file.write(plaintext)
+            while ciphertext_bv.more_to_read:
+                bitvec = ciphertext_bv.read_bits_from_file(256)
+                cipher_num = int(bitvec)
+                plaintext = pow(cipher_num, self.d, self.n)
+                output = BitVector.BitVector(intVal=plaintext, size=128)
+                file.write(output.get_bitvector_in_ascii())
         print("Decryption done")
 if __name__ == "__main__":
     cipher = RSA(e=65537)
