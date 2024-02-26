@@ -1,4 +1,4 @@
-import BitVector
+from BitVector import *
 import sys
 import random
 import binascii
@@ -48,6 +48,7 @@ class RSA():
         plaintext_bv = BitVector.BitVector(filename=plaintext)
         self.key_generation(sys.argv[3], sys.argv[4])
         self.e, self.n = self.public_key
+        print(self.e, self.n)
         with open(ciphertext_file, 'w') as file:
             while plaintext_bv.more_to_read:
                 bitvec = plaintext_bv.read_bits_from_file(128)
@@ -61,16 +62,22 @@ class RSA():
         print("Encryption done")   
     def decrypt(self, ciphertext:str, recovered_plaintext:str) -> None:
         # Read ciphertext from file
-        ciphertext_bv = BitVector.BitVector(filename=ciphertext)
+        with open(ciphertext, 'r') as file:
+            ciphertext_bv = BitVector(hexstring=file.read())
         self.key_generation(sys.argv[3], sys.argv[4])
         self.d, self.n = self.private_key
-        with open(recovered_plaintext, 'w') as file:
-            while ciphertext_bv.more_to_read:
-                bitvec = ciphertext_bv.read_bits_from_file(256)
+        print(self.d, self.n)
+        with open(recovered_plaintext, 'wb') as file:
+            while ciphertext_bv.length() > 0:
+                bitvec = ciphertext_bv[:256]
+                ciphertext_bv = ciphertext_bv[256:]
+                if bitvec.length() < 256:
+                    bitvec.pad_from_right(256 - bitvec.length())
                 cipher_num = int(bitvec)
                 plaintext = pow(cipher_num, self.d, self.n)
-                output = BitVector.BitVector(intVal=plaintext, size=128)
-                file.write(output.get_bitvector_in_ascii())
+                output = BitVector(intVal=plaintext, size=256)
+                output = output[-128:]
+                output.write_to_file(file)
         print("Decryption done")
 if __name__ == "__main__":
     cipher = RSA(e=65537)
