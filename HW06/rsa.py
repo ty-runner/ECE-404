@@ -48,7 +48,6 @@ class RSA():
         plaintext_bv = BitVector.BitVector(filename=plaintext)
         self.key_generation(sys.argv[3], sys.argv[4])
         self.e, self.n = self.public_key
-        print(self.e, self.n)
         with open(ciphertext_file, 'w') as file:
             while plaintext_bv.more_to_read:
                 bitvec = plaintext_bv.read_bits_from_file(128)
@@ -66,7 +65,6 @@ class RSA():
             ciphertext_bv = BitVector(hexstring=file.read())
         self.key_generation(sys.argv[3], sys.argv[4])
         self.d, self.n = self.private_key
-        print(self.d, self.n)
         with open(recovered_plaintext, 'wb') as file:
             while ciphertext_bv.length() > 0:
                 bitvec = ciphertext_bv[:256]
