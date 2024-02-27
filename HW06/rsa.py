@@ -66,6 +66,7 @@ class RSA():
         self.key_generation(sys.argv[3], sys.argv[4])
         self.d, self.n = self.private_key
         with open(recovered_plaintext, 'wb') as file:
+            print(ciphertext_bv.length(), "length of ciphertext_bv")
             while ciphertext_bv.length() > 0:
                 bitvec = ciphertext_bv[:256]
                 ciphertext_bv = ciphertext_bv[256:]
@@ -74,7 +75,7 @@ class RSA():
                 cipher_num = int(bitvec)
                 plaintext = pow(cipher_num, self.d, self.n)
                 output = BitVector(intVal=plaintext, size=256)
-                output = output[-128:]
+                output = output[128:256]
                 output.write_to_file(file)
         print("Decryption done")
 if __name__ == "__main__":
