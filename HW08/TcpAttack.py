@@ -20,7 +20,7 @@ class TcpAttack():
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.1)
             try:
-                sock.connect((self.host, port))
+                sock.connect((self.host, port)) # problem
                 openports.append(port)
                 if verbosity: print(port)
                 sys.stdout.write(".")
