@@ -1,7 +1,7 @@
 import sys, socket
 import re
 import os.path
-from scapy.all import *
+from scapy.all import IP, TCP, send, RandShort
 class TcpAttack():
     def __init__(self, spoofIP:str, targetIP:str):
         self.spoofIP = spoofIP
@@ -15,7 +15,7 @@ class TcpAttack():
         OUT = open("openports.txt", "w")
         for port in range(rangeStart, rangeEnd+1):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.1)
+            sock.settimeout(0.05)
             try:
                 sock.connect((self.targetIP, port))
                 OUT.write(str(port) + '\n')
@@ -47,7 +47,7 @@ class TcpAttack():
 if __name__ == "__main__":
     # Construct an instance of the TcpAttack class and perform a scan and attack
     spoofIP = '10.10.10.10'
-    targetIP = 'moonshine.ecn.purdue.edu'
+    targetIP = '128.46.144.123'
 
     rangeStart = 1000
     rangeEnd = 4000
