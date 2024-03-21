@@ -15,7 +15,7 @@ class TcpAttack():
         OUT = open("openports.txt", "w")
         for port in range(rangeStart, rangeEnd+1):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.05)
+            sock.settimeout(0.1)
             try:
                 sock.connect((self.targetIP, port))
                 OUT.write(str(port) + '\n')
