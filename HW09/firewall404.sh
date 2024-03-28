@@ -10,7 +10,8 @@ sudo iptables -A INPUT -s $f1 -j ACCEPT
 
 # Rule 2: Change outgoing packets' source IP address to your own machine's IP address (MASQUERADE)
 sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-
+personal_ip="172.21.23.255"
+sudo iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source $personal_ip
 # Rule 3: Protect against indiscriminate and nonstop scanning of ports
 sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
 sudo iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
