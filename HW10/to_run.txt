@@ -1,0 +1,4 @@
+gcc server.c -o server -fno-stack-protector
+gcc client.c -o client -fno-stack-protector
+./server 9000 ADD GDB WHEN NECESSARY
+./client 127.0.0.1 ADD GDB WHEN NECESSARY
