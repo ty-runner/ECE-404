@@ -1,0 +1,63 @@
+SHELL=/bin/sh
+PATH=/usr/local/lib/mh:$PATH
+MAILDIR=$HOME/Mail
+LOGFILE=$HOME/Mail/logfile
+SENDMAIL=/usr/sbin/sendmail
+#VERBOSE=1
+VERBOSE=0
+EOL="
+"
+LOG="$EOL$EOL$EOL"
+LOG="New message log:$EOL"
+LOG=`perl GET_MESSAGE_INDEX`
+LOG="$EOL"
+
+
+
+## Recipe_1:
+## 1-50, headers in these have multiple entries in the From header
+## Basic format of these displayed emails is <USERNAME@ORGANIZATION.EXTENSION>
+# So lets filter out < + string + @ + string + . + extension + >
+# NOTE: Above logic will filter out any email that has that email format in the From header,
+# lets add a comma to the rule to denote a multiplicity of email addresses in the From:
+:0 :
+* ^From.*(<[^\s]+@[^\s]+\.[^\s]+>,)+
+recipe1_junk
+
+
+
+## Recipe_2:
+## 51-63, can be trapped just on the basis of the Subject header of the email.
+## Keyword search for common words over all the emails. I have more keywords than necessary.
+:0 :
+* ^Subject.*(degree|cheap|diploma|ED medications|Diploma|Magento|partner|imphotgence|buy)
+recipe2_junk
+
+
+
+## Recipe_3:
+## 64-66, trapped on the basis of the content (email body) of these messages.
+## 2 casino emails, one day trading email
+:0 B :
+* (Blazin|Alert|slots)
+recipe3_junk
+
+
+## Recipe_4:
+## 67-74, trap with a signle recipe that contains compound rules. The content type structure of these emails is multi -> plain -> html
+##
+:0 HB :
+* ^Content-Type: multipart/alternative
+* ^Content-Type: text/plain
+* ^Content-Type: text/html
+recipe4_junk
+
+
+
+## Recipe_6:
+##
+## The rest of the email to your special account will be
+## deposited in the file spamFolder
+##
+:0 :
+spamFolder

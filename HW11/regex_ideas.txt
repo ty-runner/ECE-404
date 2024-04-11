@@ -1,3 +1,6 @@
-Recipe 1: * ^From.*< + string + @ + string + . + EXTENSION + > : legnth = 3828
-Recipe 2: * ^Subject.*(degree|cheap|diploma|ills|ED|Diploma|Magento) : length = 1386
-Recipe 3: * (Blazin|slots)
+Recipe 1: * ^From.*< + string + @ + string + . + EXTENSION + > : legnth = 3828 GOOD
+Recipe 2: * ^Subject.*(degree|cheap|diploma|ills|ED|Diploma|Magento) : length = 1386 GOOD
+Recipe 3: * (Blazin|slots) : length = 267 GOOD
+Recipe 4: 
+* ^Content-Type: text/plain
+* ^Content-Type: multipart/alternative
